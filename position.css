@@ -1,0 +1,53 @@
+.pos-overflow {
+	overflow: hidden;
+}
+
+.pos-screen {
+	position: relative;
+	background: #333;
+	border: 2px solid white;
+	border-radius: 2px;
+	box-shadow: 0 0 .5em rgba(0,0,0,1);
+}
+
+.pos-avail {
+	position: absolute;
+	background: #ddd;
+	background: #07b;
+	background: #059;
+}
+
+.pos-window {
+	position: absolute;
+	background: #999;
+}
+
+.pos-document {
+	position: absolute;
+	background: white;
+}
+
+.pos-html {
+	position: absolute;
+	background: #ff6;
+	opacity: 0.5;
+}
+
+.pos-body {
+	position: absolute;
+	background: #9ff;
+}
+
+.pos-tag {
+	position: absolute;
+	background: black;
+	opacity: 0.3;
+}
+
+.pos-tag_div {
+	background: gray;
+}
+
+.pos-tag_img {
+	background: green;
+}
