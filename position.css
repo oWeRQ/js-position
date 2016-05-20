@@ -10,10 +10,16 @@
 	box-shadow: 0 0 .5em rgba(0,0,0,1);
 }
 
+.pos-mouse {
+	position: absolute;
+	margin: -1px;
+	width: 2px;
+	height: 2px;
+	background: red;
+}
+
 .pos-avail {
 	position: absolute;
-	background: #ddd;
-	background: #07b;
 	background: #059;
 }
 
@@ -22,9 +28,23 @@
 	background: #999;
 }
 
-.pos-document {
+.pos-inner {
 	position: absolute;
 	background: white;
+}
+
+.pos-scrollX {
+	position: absolute;
+	bottom: 0;
+	background: #333;
+	opacity: .5;
+}
+
+.pos-scrollY {
+	position: absolute;
+	right: 0;
+	background: #333;
+	opacity: .5;
 }
 
 .pos-html {
