@@ -1,9 +1,9 @@
 var position = {
+	highlight: /div\.area\.item|\.i-headTopRow|\.i-headMenu/,
 	contentSelector: 'div, p, h1, h2, h3, h4, li, dt, dd, img',
-	elementsScale: 0.2,
-	elements: {
+	uiScale: 0.2,
+	ui: {
 		screen: 'pos-screen',
-		mouse: 'pos-mouse',
 		avail: 'pos-avail',
 		window: 'pos-window',
 		inner: 'pos-inner',
@@ -11,7 +11,10 @@ var position = {
 		scrollY: 'pos-scrollY',
 		html: 'pos-html',
 		body: 'pos-body',
-		content: 'pos-content'
+		content: 'pos-content',
+		mouseClient: 'pos-mouseClient',
+		mouseInner: 'pos-mouseInner',
+		mouse: 'pos-mouse',
 	},
 	deltaScrollX: 0,
 	deltaScrollY: 0,
@@ -22,12 +25,13 @@ var position = {
 		function update() {
 			self.render(self.getSizes());
 
-			self.elements.screen.style.left = window.scrollX + (window.innerWidth - self.elements.screen.offsetWidth) / 2 + 'px';
-			self.elements.screen.style.top = window.scrollY + (window.innerHeight - self.elements.screen.offsetHeight) / 2 + 'px';
+			self.ui.screen.style.left = (window.scrollX || window.pageXOffset || 0) + (window.innerWidth - self.ui.screen.offsetWidth) / 2 + 'px';
+			self.ui.screen.style.top = (window.scrollY || window.pageYOffset || 0) + (window.innerHeight - self.ui.screen.offsetHeight) / 2 + 'px';
 		}
 
 		function scroll(e) {
 			update();
+			self.renderContent(self.getContent());
 		}
 
 		function resize(e) {
@@ -36,43 +40,61 @@ var position = {
 		}
 
 		function mousemove(e) {
+			var screenScale = self.getScreenScale();
+			var innerScale = self.getInnerScale();
+
 			self.deltaScrollX = e.pageX - e.clientX - window.scrollX;
 			self.deltaScrollY = e.pageY - e.clientY - window.scrollY;
 			self.innerScreenX = e.screenX / window.devicePixelRatio - e.clientX;
 			self.innerScreenY = e.screenY / window.devicePixelRatio - e.clientY;
+
 			self.render(self.getSizes());
 
-			self.elements.mouse.style.left = e.screenX / window.devicePixelRatio * self.elementsScale + 'px';
-			self.elements.mouse.style.top = e.screenY / window.devicePixelRatio * self.elementsScale + 'px';
+			self.render({
+				mouseClient: {
+					left: e.pageX / innerScale,
+					top: e.pageY / innerScale
+				},
+				mouseInner: {
+					left: e.clientX / innerScale,
+					top: e.clientY / innerScale
+				},
+				mouse: {
+					left: e.screenX / screenScale,
+					top: e.screenY / screenScale
+				}
+			});
 		}
 
-		this.createElements(this.elements);
+		this.createElements(this.ui);
 
-		this.elements.screen.appendChild(this.elements.avail);
+		this.ui.screen.appendChild(this.ui.avail);
 
-		this.elements.screen.appendChild(this.elements.window);
-		this.elements.window.appendChild(this.elements.inner);
-		this.elements.inner.appendChild(this.elements.html);
-		this.elements.inner.appendChild(this.elements.scrollX);
-		this.elements.inner.appendChild(this.elements.scrollY);
-		this.elements.html.appendChild(this.elements.body);
-		this.elements.html.appendChild(this.elements.content);
+		this.ui.screen.appendChild(this.ui.window);
+		this.ui.window.appendChild(this.ui.inner);
+		this.ui.inner.appendChild(this.ui.html);
+		this.ui.inner.appendChild(this.ui.scrollX);
+		this.ui.inner.appendChild(this.ui.scrollY);
+		this.ui.html.appendChild(this.ui.body);
+		this.ui.html.appendChild(this.ui.content);
 
-		this.elements.screen.appendChild(this.elements.mouse);
+		this.ui.html.appendChild(this.ui.mouseClient);
+		this.ui.inner.appendChild(this.ui.mouseInner);
+		this.ui.screen.appendChild(this.ui.mouse);
 
-		this.elements.screen.style.position = 'absolute';
-		this.elements.screen.style.zIndex = 9001;
-		document.body.appendChild(this.elements.screen);
+		this.ui.screen.style.position = 'absolute';
+		this.ui.screen.style.zIndex = 9001;
+		document.body.appendChild(this.ui.screen);
 
-		this.elements.inner.addEventListener('click', function(){
-			self.elements.inner.classList.toggle('pos-overflow');
+		this.ui.inner.addEventListener('click', function(){
+			self.ui.inner.classList.toggle('pos-overflow');
 		}, false);
-		
+
 		window.addEventListener('scroll', scroll, false);
 		window.addEventListener('resize', resize, false);
 		window.addEventListener('mousemove', mousemove, false);
-		update();
 
+		update();
 		this.renderContent(self.getContent());
 	},
 	createElements: function(elements) {
@@ -88,25 +110,39 @@ var position = {
 	render: function(sizes) {
 		for (var el in sizes) {
 			for (var prop in sizes[el]) {
-				this.elements[el].style[prop] = sizes[el][prop] * this.elementsScale + 'px';
+				this.ui[el].style[prop] = sizes[el][prop] * this.uiScale + 'px';
+			}
+
+			if (sizes[el].width || sizes[el].height) {
+				this.ui[el].setAttribute('data-size', sizes[el].width + 'x' + sizes[el].height);
 			}
 		}
 	},
 	renderContent: function(content) {
 		var self = this;
-		var scale = self.elementsScale / (window.devicePixelRatio * this.getZoom());
-		var tags = [].map.call(content, function(el){
-			var styles = {
-				left: Math.round(el.left * scale) + 'px',
-				top: Math.round(el.top * scale) + 'px',
-				width: Math.round(el.width * scale) + 'px',
-				height: Math.round(el.height * scale) + 'px'
-			};
-			var title = el.tagName + (el.id ? '#' + el.id : '') + (el.className ? el.className.replace(/^|\s/g, '.') : '');
-			return '<div class="pos-tag pos-tag_' + el.tagName + '" style="' + self.makeStyle(styles) + '" title="' + title + '"></div>';
+		var tags = content.map(function(el){
+			var selector = el.tagName + (el.id ? '#' + el.id : '') + (el.className ? el.className.replace(/^|\s/g, '.') : '');
+
+			var className = 'pos-tag pos-tag_' + el.tagName;
+
+			if (self.highlight && self.highlight.test(selector)) {
+				className += ' pos-tag_highlight';
+			}
+
+			var style = self.makeStyle({
+				left: Math.round(el.left * self.uiScale) + 'px',
+				top: Math.round(el.top * self.uiScale) + 'px',
+				width: Math.round(el.width * self.uiScale) + 'px',
+				height: Math.round(el.height * self.uiScale) + 'px'
+			});
+
+			return self.makeTag('div', {
+				'class': className,
+				style: style,
+				title: selector
+			});
 		});
-		//console.log(tags);
-		this.elements.content.innerHTML = tags.join('');
+		this.ui.content.innerHTML = tags.join('');
 	},
 	makeStyle: function(styles) {
 		var style = [];
@@ -115,27 +151,40 @@ var position = {
 		}
 		return style.join(';');
 	},
+	makeTag: function(tagName, attributes, content) {
+		var tagAttributes = '';
+		for (var key in attributes) {
+			tagAttributes += ' ' + key + '="' + attributes[key] + '"';
+		}
+		return '<' + tagName + tagAttributes + '>' + (content || '') + '</' + tagName + '>';
+	},
+	getContentElements: function() {
+		return [].filter.call(document.body.querySelectorAll(this.contentSelector), function(el){
+			return !/\bpos-/.test(el.className);
+		});
+	},
 	getContent: function() {
 		var self = this;
-		var elements = document.body.querySelectorAll(this.contentSelector);
-		//console.log(elements.length);
-		var content = [].map.call(elements, function(el){
-			if (/\bpos-/.test(el.className))
-				return;
+		var innerScale = this.getInnerScale();
 
+		return this.getContentElements().map(function(el){
 			var position = self.getPosition(el);
+
 			if (el.style.position === 'fixed') {
 				position.left += window.scrollX;
 				position.top += window.scrollY;
 			}
-			position.width = el.offsetWidth;
-			position.height = el.offsetHeight;
+
+			position.left /= innerScale;
+			position.top /= innerScale;
+			position.width = el.offsetWidth / innerScale;
+			position.height = el.offsetHeight / innerScale;
 			position.id = el.id;
 			position.className = el.className;
 			position.tagName = el.tagName.toLowerCase();
+
 			return position;
 		});
-		return content.filter(function(el){ return !!el; });
 	},
 	getPosition: function(el) {
 		var position = {
@@ -150,30 +199,23 @@ var position = {
 
 		return position;
 	},
-	getScale: function() {
-		var scale = document.documentElement.clientWidth / window.innerWidth;
-		var delta = document.documentElement.clientWidth - window.innerWidth;
-
-		if (1 - scale < 0.04 && delta < 30) {
-			scale = 1;
-		}
-
-		//console.log(scale);
-
-		return scale;
-	},
 	getZoom: function() {
-		//return 1;
+		return document.documentElement.clientWidth / window.innerWidth;
+	},
+	getScale: function() {
 		return window.innerWidth / window.outerWidth;
+	},
+	getScreenScale: function() {
+		return window.devicePixelRatio;
+	},
+	getInnerScale: function() {
+		return this.getScreenScale() * this.getScale();
 	},
 	getSizes: function() {
 		var sizes = {};
-		//var scale = this.getScale();
-		//document.documentElement.clientWidth;
-		//window.innerWidth;
-		var zoom = this.getZoom();
-		var screenScale = window.devicePixelRatio;
-		var innerScale = screenScale * zoom;
+
+		var screenScale = this.getScreenScale();
+		var innerScale = this.getInnerScale();
 
 		sizes.screen = {
 			width: screen.width / screenScale,
@@ -196,11 +238,23 @@ var position = {
 			height: window.outerHeight / screenScale
 		};
 
-		var innerScreenX = window.mozInnerScreenX || this.innerScreenX - this.deltaScrollX;
-		var innerScreenY = window.mozInnerScreenY || this.innerScreenY - this.deltaScrollY;
+		//var innerScreenX = window.mozInnerScreenX || this.innerScreenX - this.deltaScrollX;
+		//var innerScreenY = window.mozInnerScreenY || this.innerScreenY - this.deltaScrollY;
+
+		var innerLeft = window.mozInnerScreenX ? window.mozInnerScreenX - screenX : 0;
+		var innerTop = window.mozInnerScreenY ? window.mozInnerScreenY - screenY : 0;
+
+		if (!innerLeft || !innerTop) {
+			//innerLeft = this.innerScreenX - screenX;
+			//innerTop = this.innerScreenY - screenY;
+
+			//innerLeft = (window.outerWidth - window.innerWidth) * innerScale;
+			//innerTop = (window.outerHeight - window.innerHeight) * innerScale;
+		}
+
 		sizes.inner = {
-			//left: innerScreenX ? innerScreenX - screenX : 0,
-			//top: innerScreenY ? innerScreenY - screenY : 0,
+			left: innerLeft / innerScale,
+			top: innerTop / innerScale,
 			width: window.innerWidth / innerScale,
 			height: window.innerHeight / innerScale
 		};
@@ -212,17 +266,20 @@ var position = {
 			height: document.documentElement.scrollHeight / innerScale
 		};
 
-		/*
+		var scrollXPercent = Math.min(1, document.documentElement.clientWidth / document.documentElement.scrollWidth);
 		sizes.scrollX = {
-			left: window.scrollX * document.documentElement.clientWidth / document.documentElement.scrollWidth,
-			width: window.innerWidth * document.documentElement.clientWidth / document.documentElement.scrollWidth,
-			height: window.innerHeight - document.documentElement.clientHeight
+			left: window.scrollX * scrollXPercent / innerScale,
+			width: window.innerWidth * scrollXPercent / innerScale,
+			//height: window.innerHeight - document.documentElement.clientHeight
+			height: 10,
 		};
-		
+
+		var scrollYPercent = Math.min(1, document.documentElement.clientHeight / document.documentElement.scrollHeight);
 		sizes.scrollY = {
-			top: window.scrollY * document.documentElement.clientHeight / document.documentElement.scrollHeight,
-			height: window.innerHeight * document.documentElement.clientHeight / document.documentElement.scrollHeight,
-			width: window.innerWidth - document.documentElement.clientWidth
+			top: window.scrollY * scrollYPercent / innerScale,
+			height: window.innerHeight * scrollYPercent / innerScale,
+			//width: window.innerWidth - document.documentElement.clientWidth
+			width: 10,
 		};
 
 		/*

@@ -4,10 +4,20 @@
 
 .pos-screen {
 	position: relative;
+	font: 11px sans-serif;
 	background: #333;
 	border: 2px solid white;
 	border-radius: 2px;
 	box-shadow: 0 0 .5em rgba(0,0,0,1);
+}
+.pos-screen::before {
+	content: attr(data-size);
+	position: absolute;
+	right: 0;
+	bottom: 100%;
+	padding: 0 2px;
+	color: white;
+	background: #333;
 }
 
 .pos-mouse {
@@ -18,9 +28,33 @@
 	background: red;
 }
 
+.pos-mouseInner {
+	position: absolute;
+	margin: -1px;
+	width: 2px;
+	height: 2px;
+	background: green;
+}
+
+.pos-mouseClient {
+	position: absolute;
+	margin: -1px;
+	width: 2px;
+	height: 2px;
+	background: blue;
+}
+
 .pos-avail {
 	position: absolute;
 	background: #059;
+}
+.pos-avail::before {
+	content: attr(data-size);
+	position: absolute;
+	right: 0;
+	top: 0;
+	padding: 0 2px;
+	color: white;
 }
 
 .pos-window {
@@ -61,7 +95,7 @@
 .pos-tag {
 	position: absolute;
 	background: black;
-	opacity: 0.3;
+	opacity: .3;
 }
 
 .pos-tag_div {
@@ -70,4 +104,8 @@
 
 .pos-tag_img {
 	background: green;
+}
+
+.pos-tag_highlight {
+	background: red;
 }
