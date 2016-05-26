@@ -1,7 +1,7 @@
 var position = {
 	highlight: /div\.area\.item|\.i-headTopRow|\.i-headMenu/,
 	contentSelector: 'div, p, h1, h2, h3, h4, li, dt, dd, img',
-	uiScale: 0.2,
+	uiScale: 0.1,
 	ui: {
 		screen: 'pos-screen',
 		avail: 'pos-avail',
@@ -52,21 +52,21 @@ var position = {
 
 			self.render({
 				mouseClient: {
-					left: e.pageX / innerScale,
-					top: e.pageY / innerScale
+					left: e.pageX * innerScale,
+					top: e.pageY * innerScale
 				},
 				mouseInner: {
-					left: e.clientX / innerScale,
-					top: e.clientY / innerScale
+					left: e.clientX * innerScale,
+					top: e.clientY * innerScale
 				},
 				mouse: {
-					left: e.screenX / screenScale,
-					top: e.screenY / screenScale
+					left: e.screenX,
+					top: e.screenY
 				}
 			});
 		}
 
-		this.createElements(this.ui);
+		this.createDivs(this.ui);
 
 		this.ui.screen.appendChild(this.ui.avail);
 
@@ -97,7 +97,7 @@ var position = {
 		update();
 		this.renderContent(self.getContent());
 	},
-	createElements: function(elements) {
+	createDivs: function(elements) {
 		for (var element in elements) {
 			var className = elements[element];
 
@@ -110,17 +110,17 @@ var position = {
 	render: function(sizes) {
 		for (var el in sizes) {
 			for (var prop in sizes[el]) {
-				this.ui[el].style[prop] = sizes[el][prop] * this.uiScale + 'px';
+				this.ui[el].style[prop] = Math.round(sizes[el][prop] * this.uiScale) + 'px';
 			}
 
 			if (sizes[el].width || sizes[el].height) {
-				this.ui[el].setAttribute('data-size', sizes[el].width + 'x' + sizes[el].height);
+				this.ui[el].setAttribute('data-size', Math.round(sizes[el].width) + 'x' + Math.round(sizes[el].height));
 			}
 		}
 	},
 	renderContent: function(content) {
 		var self = this;
-		var tags = content.map(function(el){
+		var contentHtml = content.map(function(el){
 			var selector = el.tagName + (el.id ? '#' + el.id : '') + (el.className ? el.className.replace(/^|\s/g, '.') : '');
 
 			var className = 'pos-tag pos-tag_' + el.tagName;
@@ -141,8 +141,11 @@ var position = {
 				style: style,
 				title: selector
 			});
-		});
-		this.ui.content.innerHTML = tags.join('');
+		}).join('');
+
+		if (this.prevContentHtml !== contentHtml) {
+			this.ui.content.innerHTML = this.prevContentHtml = contentHtml;
+		}
 	},
 	makeStyle: function(styles) {
 		var style = [];
@@ -175,10 +178,10 @@ var position = {
 				position.top += window.scrollY;
 			}
 
-			position.left /= innerScale;
-			position.top /= innerScale;
-			position.width = el.offsetWidth / innerScale;
-			position.height = el.offsetHeight / innerScale;
+			position.left *= innerScale;
+			position.top *= innerScale;
+			position.width = el.offsetWidth * innerScale;
+			position.height = el.offsetHeight * innerScale;
 			position.id = el.id;
 			position.className = el.className;
 			position.tagName = el.tagName.toLowerCase();
@@ -209,7 +212,7 @@ var position = {
 		return window.devicePixelRatio;
 	},
 	getInnerScale: function() {
-		return this.getScreenScale() * this.getScale();
+		return this.getScreenScale() / this.getScale();
 	},
 	getSizes: function() {
 		var sizes = {};
@@ -218,24 +221,24 @@ var position = {
 		var innerScale = this.getInnerScale();
 
 		sizes.screen = {
-			width: screen.width / screenScale,
-			height: screen.height / screenScale
+			width: screen.width * screenScale,
+			height: screen.height * screenScale
 		};
 
 		sizes.avail = {
-			left: screen.availLeft / screenScale,
-			top: screen.availTop / screenScale,
-			width: screen.availWidth / screenScale,
-			height: screen.availHeight / screenScale
+			left: screen.availLeft * screenScale,
+			top: screen.availTop * screenScale,
+			width: screen.availWidth * screenScale,
+			height: screen.availHeight * screenScale
 		};
 
 		var screenX = window.screenX || window.screenLeft || 0;
 		var screenY = window.screenY || window.screenTop || 0;
 		sizes.window = {
-			left: screenX / screenScale,
-			top: screenY / screenScale,
-			width: window.outerWidth / screenScale,
-			height: window.outerHeight / screenScale
+			left: screenX * screenScale,
+			top: screenY * screenScale,
+			width: window.outerWidth * screenScale,
+			height: window.outerHeight * screenScale
 		};
 
 		//var innerScreenX = window.mozInnerScreenX || this.innerScreenX - this.deltaScrollX;
@@ -253,44 +256,45 @@ var position = {
 		}
 
 		sizes.inner = {
-			left: innerLeft / innerScale,
-			top: innerTop / innerScale,
-			width: window.innerWidth / innerScale,
-			height: window.innerHeight / innerScale
+			left: innerLeft * innerScale,
+			top: innerTop * innerScale,
+			width: window.innerWidth * innerScale,
+			height: window.innerHeight * innerScale
 		};
 
 		sizes.html = {
-			left: -window.scrollX / innerScale,
-			top: -window.scrollY / innerScale,
-			width: document.documentElement.scrollWidth / innerScale,
-			height: document.documentElement.scrollHeight / innerScale
+			left: -window.scrollX * innerScale,
+			top: -window.scrollY * innerScale,
+			width: document.documentElement.scrollWidth * innerScale,
+			height: document.documentElement.scrollHeight * innerScale
 		};
 
+		/*
 		var scrollXPercent = Math.min(1, document.documentElement.clientWidth / document.documentElement.scrollWidth);
 		sizes.scrollX = {
-			left: window.scrollX * scrollXPercent / innerScale,
-			width: window.innerWidth * scrollXPercent / innerScale,
+			left: window.scrollX * scrollXPercent * innerScale,
+			width: window.innerWidth * scrollXPercent * innerScale,
 			//height: window.innerHeight - document.documentElement.clientHeight
 			height: 10,
 		};
 
 		var scrollYPercent = Math.min(1, document.documentElement.clientHeight / document.documentElement.scrollHeight);
 		sizes.scrollY = {
-			top: window.scrollY * scrollYPercent / innerScale,
-			height: window.innerHeight * scrollYPercent / innerScale,
+			top: window.scrollY * scrollYPercent * innerScale,
+			height: window.innerHeight * scrollYPercent * innerScale,
 			//width: window.innerWidth - document.documentElement.clientWidth
 			width: 10,
 		};
+		*/
 
-		/*
+		var htmlOffsets = document.documentElement.getBoundingClientRect();
 		var bodyOffsets = document.body.getBoundingClientRect();
 		sizes.body = {
-			left: bodyOffsets.left + window.scrollX,
-			top: bodyOffsets.top + window.scrollY,
-			width: document.body.clientWidth,
-			height: document.body.clientHeight
+			left: (bodyOffsets.left - htmlOffsets.left) * innerScale,
+			top: (bodyOffsets.top - htmlOffsets.top) * innerScale,
+			width: document.body.clientWidth * innerScale,
+			height: document.body.clientHeight * innerScale
 		};
-		*/
 
 		return sizes;
 	}
