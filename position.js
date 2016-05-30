@@ -167,6 +167,24 @@ var position = {
 		});
 	},
 	getContent: function() {
+		var innerScale = this.getInnerScale();
+		var htmlOffsets = document.documentElement.getBoundingClientRect();
+
+		return this.getContentElements().map(function(el){
+			var offsets = el.getBoundingClientRect();
+
+			return {
+				left: (offsets.left - htmlOffsets.left) * innerScale,
+				top: (offsets.top - htmlOffsets.top) * innerScale,
+				width: offsets.width * innerScale,
+				height: offsets.height * innerScale,
+				id: el.id,
+				className: el.className,
+				tagName: el.tagName.toLowerCase()
+			};
+		});
+	},
+	getContentFallback: function() {
 		var self = this;
 		var innerScale = this.getInnerScale();
 
@@ -178,15 +196,15 @@ var position = {
 				position.top += window.scrollY;
 			}
 
-			position.left *= innerScale;
-			position.top *= innerScale;
-			position.width = el.offsetWidth * innerScale;
-			position.height = el.offsetHeight * innerScale;
-			position.id = el.id;
-			position.className = el.className;
-			position.tagName = el.tagName.toLowerCase();
-
-			return position;
+			return {
+				left: position.left * innerScale,
+				top: position.top * innerScale,
+				width: el.offsetWidth * innerScale,
+				height: el.offsetHeight * innerScale,
+				id: el.id,
+				className: el.className,
+				tagName: el.tagName.toLowerCase()
+			};
 		});
 	},
 	getPosition: function(el) {
@@ -206,7 +224,7 @@ var position = {
 		return document.documentElement.clientWidth / window.innerWidth;
 	},
 	getScale: function() {
-		return window.innerWidth / window.outerWidth;
+		return window.innerWidth / (window.outerWidth || screen.width);
 	},
 	getScreenScale: function() {
 		return window.devicePixelRatio;
